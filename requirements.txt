@@ -1,6 +1,6 @@
-streamlit
+backtesting
 yfinance
-pandas
+streamlit
 numpy
-xlsxwriter
+pandas
 plotly
