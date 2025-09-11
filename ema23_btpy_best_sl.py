@@ -71,6 +71,10 @@ def plot_signals(df, trades, stock, best_sl):
     )
     return fig
 
+# === 讀取台股代碼與中文名稱 ===
+twse_df = pd.read_csv("twse_list.csv", dtype=str)
+code2name = dict(zip(twse_df["code"], twse_df["name"]))
+
 # === Streamlit 介面 ===
 st.title("📈 EMA23 最佳停損/停利搜尋器")
 
@@ -86,8 +90,11 @@ run = st.button("開始回測")
 
 if run and stock_input.strip():
     STOCKS = [s.strip() for s in stock_input.replace(",", " ").split() if s.strip()]
-    # 下面才開始 for stock in STOCKS:
     for stock in STOCKS:
+        stock_code = stock.split(".")[0]  # 例如 2330.TW -> 2330
+        stock_name = code2name.get(stock_code, "")
+        display_name = f"{stock} {stock_name}" if stock_name else stock
+
         df = yf.download(stock, start=START, end=END)
         if df.empty or len(df) < 30:
             st.warning(f"{stock} 沒有足夠資料")
@@ -141,11 +148,11 @@ if run and stock_input.strip():
 
         # === 顯示結果 ===
         st.success(
-            f"⭐ {stock} 最佳停損參數：{best_sl:.3%}，最佳停利參數：{best_tp:.3%}，報酬率：{best_return:.2f}%"
+            f"⭐ {display_name} 最佳停損參數：{best_sl:.3%}，最佳停利參數：{best_tp:.3%}，報酬率：{best_return:.2f}%"
         )
 
         trades = best_stats._trades
-        trades["股票"] = stock
+        trades["股票"] = display_name
         results.append(trades)
 
         # 顯示最後一筆買進建議
@@ -165,7 +172,7 @@ if run and stock_input.strip():
 
         best_params.append(
             {
-                "股票": stock,
+                "股票": display_name,
                 "最佳停損": best_sl,
                 "最佳停利": best_tp,
                 "報酬率(%)": best_return,
@@ -175,7 +182,7 @@ if run and stock_input.strip():
             }
         )
 
-        fig = plot_signals(df.reset_index(), trades, stock, best_sl)
+        fig = plot_signals(df.reset_index(), trades, display_name, best_sl)
         st.plotly_chart(fig, use_container_width=True, key=stock)
 
     # 總覽
